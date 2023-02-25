@@ -1,19 +1,21 @@
+import 'package:yoyo_settings/widgets/deferred_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ficons;
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
-import 'package:url_launcher/link.dart';
-import 'package:url_strategy/url_strategy.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'screens/home.dart';
 import 'screens/settings.dart';
 
-import 'theme.dart';
-import 'widgets/deferred_widget.dart';
+import 'routes/network.dart' deferred as networks;
+import 'routes/system.dart' deferred as system;
 
-const String appTitle = 'Fluent UI Showcase for Flutter';
+import 'theme.dart';
+
+const String appTitle = 'Settings';
 
 /// Checks if the current environment is a desktop environment.
 bool get isDesktop {
@@ -27,36 +29,25 @@ bool get isDesktop {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // if it's not on the web, windows or android, load the accent color
-  if (!kIsWeb &&
-      [
-        TargetPlatform.windows,
-        TargetPlatform.android,
-      ].contains(defaultTargetPlatform)) {
-    SystemTheme.accentColor.load();
-  }
-
-  setPathUrlStrategy();
-
-  if (isDesktop) {
-    await flutter_acrylic.Window.initialize();
-    await WindowManager.instance.ensureInitialized();
-    windowManager.waitUntilReadyToShow().then((_) async {
-      await windowManager.setTitleBarStyle(
-        TitleBarStyle.hidden,
-        windowButtonVisibility: false,
-      );
-      await windowManager.setSize(const Size(755, 545));
-      await windowManager.setMinimumSize(const Size(350, 600));
-      await windowManager.center();
-      await windowManager.show();
-      await windowManager.setPreventClose(true);
-      await windowManager.setSkipTaskbar(false);
-    });
-  }
+  SystemTheme.accentColor.load();
+  await flutter_acrylic.Window.initialize();
+  await WindowManager.instance.ensureInitialized();
+  windowManager.waitUntilReadyToShow().then((_) async {
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
+    await windowManager.setMinimumSize(const Size(350, 600));
+    await windowManager.center();
+    await windowManager.show();
+    await windowManager.setSkipTaskbar(false);
+  });
 
   runApp(const MyApp());
+  Future.wait([
+    DeferredWidget.preload(networks.loadLibrary),
+    DeferredWidget.preload(system.loadLibrary),
+  ]);
 }
 
 class MyApp extends StatelessWidget {
@@ -73,16 +64,20 @@ class MyApp extends StatelessWidget {
           themeMode: appTheme.mode,
           debugShowCheckedModeBanner: false,
           color: appTheme.color,
+          // ignore: deprecated_member_use
           darkTheme: ThemeData(
             brightness: Brightness.dark,
+            fastAnimationDuration: Duration.zero,
             accentColor: appTheme.color,
             visualDensity: VisualDensity.standard,
             focusTheme: FocusThemeData(
               glowFactor: is10footScreen() ? 2.0 : 0.0,
             ),
           ),
+          // ignore: deprecated_member_use
           theme: ThemeData(
             accentColor: appTheme.color,
+            fastAnimationDuration: Duration.zero,
             visualDensity: VisualDensity.standard,
             focusTheme: FocusThemeData(
               glowFactor: is10footScreen() ? 2.0 : 0.0,
@@ -130,9 +125,65 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
 
   final List<NavigationPaneItem> originalItems = [
     PaneItem(
-      icon: const Icon(FluentIcons.home),
+      icon: const Icon(ficons.FluentIcons.home_24_regular),
       title: const Text('Home'),
       body: const HomePage(),
+    ),
+    // NetWork
+    PaneItemHeader(
+      header: const Text('NetWork'),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.wifi_1_24_regular),
+      title: const Text('Wireless'),
+      body: DeferredWidget(
+        networks.loadLibrary,
+        () => networks.WifiPage(),
+      ),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.globe_desktop_24_regular),
+      title: const Text('Wired'),
+      body: DeferredWidget(
+        networks.loadLibrary,
+        () => networks.WiredPage(),
+      ),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.bluetooth_24_regular),
+      title: const Text('Bluetooth'),
+      body: DeferredWidget(
+        networks.loadLibrary,
+        () => networks.BluetoothPage(),
+      ),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.shield_keyhole_24_regular),
+      title: const Text('Proxy'),
+      body: DeferredWidget(
+        networks.loadLibrary,
+        () => networks.ProxyPage(),
+      ),
+    ),
+    // System
+    PaneItemHeader(
+      header: const Text('System'),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.rocket_24_regular),
+      title: const Text('Power'),
+      body: DeferredWidget(
+        system.loadLibrary,
+        () => system.PowerPage(),
+      ),
+    ),
+    PaneItem(
+      icon: const Icon(ficons.FluentIcons.info_24_regular),
+      title: const Text('About'),
+      body: DeferredWidget(
+        system.loadLibrary,
+        () => system.InfoPage(),
+      ),
     ),
   ];
   final List<NavigationPaneItem> footerItems = [
@@ -142,6 +193,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
       title: const Text('Settings'),
       body: Settings(),
     ),
+    // ignore: todo
     // TODO: mobile widgets, Scrollbar, BottomNavigationBar, RatingBar
   ];
 
@@ -162,18 +214,11 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
-    final theme = FluentTheme.of(context);
     return NavigationView(
       key: viewKey,
       appBar: NavigationAppBar(
         automaticallyImplyLeading: false,
         title: () {
-          if (kIsWeb) {
-            return const Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(appTitle),
-            );
-          }
           return const DragToMoveArea(
             child: Align(
               alignment: AlignmentDirectional.centerStart,
@@ -181,22 +226,8 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
             ),
           );
         }(),
-        actions: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8.0),
-            child: ToggleSwitch(
-              content: const Text('Dark Mode'),
-              checked: FluentTheme.of(context).brightness.isDark,
-              onChanged: (v) {
-                if (v) {
-                  appTheme.mode = ThemeMode.dark;
-                } else {
-                  appTheme.mode = ThemeMode.light;
-                }
-              },
-            ),
-          ),
-          if (!kIsWeb) const WindowButtons(),
+        actions: Row(mainAxisAlignment: MainAxisAlignment.end, children: const [
+          WindowButtons(),
         ]),
       ),
       pane: NavigationPane(
@@ -204,29 +235,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         onChanged: (i) {
           setState(() => index = i);
         },
-        header: SizedBox(
-          height: kOneLineTileHeight,
-          child: ShaderMask(
-            shaderCallback: (rect) {
-              final color = appTheme.color.resolveFromReverseBrightness(
-                theme.brightness,
-                level: theme.brightness == Brightness.light ? 0 : 2,
-              );
-              return LinearGradient(
-                colors: [
-                  color,
-                  color,
-                ],
-              ).createShader(rect);
-            },
-            child: const FlutterLogo(
-              style: FlutterLogoStyle.horizontal,
-              size: 80.0,
-              textColor: Colors.white,
-              duration: Duration.zero,
-            ),
-          ),
-        ),
         displayMode: appTheme.displayMode,
         indicator: () {
           switch (appTheme.indicator) {
@@ -234,13 +242,14 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
               return const EndNavigationIndicator();
             case NavigationIndicators.sticky:
             default:
-              return const StickyNavigationIndicator();
+              return const StickyNavigationIndicator(
+                duration: Duration(milliseconds: 200),
+              );
           }
         }(),
         items: originalItems,
         autoSuggestBox: AutoSuggestBox(
           key: searchKey,
-          focusNode: searchFocusNode,
           controller: searchController,
           items: originalItems.whereType<PaneItem>().map((item) {
             assert(item.title is Text);
@@ -270,37 +279,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
       },
     );
   }
-
-  @override
-  void onWindowClose() async {
-    bool _isPreventClose = await windowManager.isPreventClose();
-    if (_isPreventClose) {
-      showDialog(
-        context: context,
-        builder: (_) {
-          return ContentDialog(
-            title: const Text('Confirm close'),
-            content: const Text('Are you sure you want to close this window?'),
-            actions: [
-              FilledButton(
-                child: const Text('Yes'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  windowManager.destroy();
-                },
-              ),
-              Button(
-                child: const Text('No'),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
 }
 
 class WindowButtons extends StatelessWidget {
@@ -308,6 +286,7 @@ class WindowButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: deprecated_member_use
     final ThemeData theme = FluentTheme.of(context);
 
     return SizedBox(
@@ -316,41 +295,6 @@ class WindowButtons extends StatelessWidget {
       child: WindowCaption(
         brightness: theme.brightness,
         backgroundColor: Colors.transparent,
-      ),
-    );
-  }
-}
-
-class _LinkPaneItemAction extends PaneItem {
-  _LinkPaneItemAction({
-    required super.icon,
-    required this.link,
-    required super.body,
-    super.title,
-  });
-
-  final String link;
-
-  @override
-  Widget build(
-    BuildContext context,
-    bool selected,
-    VoidCallback? onPressed, {
-    PaneDisplayMode? displayMode,
-    bool showTextOnTop = true,
-    bool? autofocus,
-    int? itemIndex,
-  }) {
-    return Link(
-      uri: Uri.parse(link),
-      builder: (context, followLink) => super.build(
-        context,
-        selected,
-        followLink,
-        displayMode: displayMode,
-        showTextOnTop: showTextOnTop,
-        itemIndex: itemIndex,
-        autofocus: autofocus,
       ),
     );
   }

@@ -1,10 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:url_launcher/link.dart';
 
-import '../widgets/changelog.dart';
-import '../widgets/material_equivalents.dart';
-import '../widgets/page.dart';
-import '../widgets/sponsor.dart';
+import 'package:yoyo_settings/widgets/page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -20,13 +16,12 @@ class _HomePageState extends State<HomePage> with PageMixin {
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasFluentTheme(context));
-    final theme = FluentTheme.of(context);
 
     return ScaffoldPage.scrollable(
-      header: PageHeader(
-        title: const Text('Fluent UI Demo'),
+      header: const PageHeader(
+        title: Text('Fluent UI Demo'),
       ),
-      children: [],
+      children: const [],
     );
   }
 }

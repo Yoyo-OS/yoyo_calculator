@@ -67,6 +67,8 @@ class AppTheme extends ChangeNotifier {
     _locale = locale;
     notifyListeners();
   }
+
+  of(BuildContext context) {}
 }
 
 AccentColor get systemAccentColor {
