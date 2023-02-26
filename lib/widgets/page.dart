@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:yoyo_settings/widgets/deferred_widget.dart';
+import 'package:yoyo_calculator/widgets/deferred_widget.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 

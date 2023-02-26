@@ -1,21 +1,19 @@
-import 'package:yoyo_settings/widgets/deferred_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ficons;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:yoyo_calculator/model/historyitem.dart';
 
-import 'screens/home.dart';
+import 'screens/calculator.dart';
 import 'screens/settings.dart';
-
-import 'routes/network.dart' deferred as networks;
-import 'routes/system.dart' deferred as system;
 
 import 'theme.dart';
 
-const String appTitle = 'Settings';
+const String appTitle = 'Calculator';
 
 /// Checks if the current environment is a desktop environment.
 bool get isDesktop {
@@ -30,6 +28,9 @@ bool get isDesktop {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemTheme.accentColor.load();
+  await Hive.initFlutter();
+  Hive.registerAdapter(HistoryItemAdapter());
+  await Hive.openBox<HistoryItem>('history');
   await flutter_acrylic.Window.initialize();
   await WindowManager.instance.ensureInitialized();
   windowManager.waitUntilReadyToShow().then((_) async {
@@ -44,10 +45,6 @@ void main() async {
   });
 
   runApp(const MyApp());
-  Future.wait([
-    DeferredWidget.preload(networks.loadLibrary),
-    DeferredWidget.preload(system.loadLibrary),
-  ]);
 }
 
 class MyApp extends StatelessWidget {
@@ -99,21 +96,22 @@ class MyApp extends StatelessWidget {
             );
           },
           initialRoute: '/',
-          routes: {'/': (context) => const MyHomePage()},
+          routes: {'/': (context) => const MyCalculatorPage()},
         );
       },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+class MyCalculatorPage extends StatefulWidget {
+  const MyCalculatorPage({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MyCalculatorPage> createState() => _MyCalculatorPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with WindowListener {
+class _MyCalculatorPageState extends State<MyCalculatorPage>
+    with WindowListener {
   bool value = false;
 
   int index = 0;
@@ -126,64 +124,8 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
   final List<NavigationPaneItem> originalItems = [
     PaneItem(
       icon: const Icon(ficons.FluentIcons.home_24_regular),
-      title: const Text('Home'),
-      body: const HomePage(),
-    ),
-    // NetWork
-    PaneItemHeader(
-      header: const Text('NetWork'),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.wifi_1_24_regular),
-      title: const Text('Wireless'),
-      body: DeferredWidget(
-        networks.loadLibrary,
-        () => networks.WifiPage(),
-      ),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.globe_desktop_24_regular),
-      title: const Text('Wired'),
-      body: DeferredWidget(
-        networks.loadLibrary,
-        () => networks.WiredPage(),
-      ),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.bluetooth_24_regular),
-      title: const Text('Bluetooth'),
-      body: DeferredWidget(
-        networks.loadLibrary,
-        () => networks.BluetoothPage(),
-      ),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.shield_keyhole_24_regular),
-      title: const Text('Proxy'),
-      body: DeferredWidget(
-        networks.loadLibrary,
-        () => networks.ProxyPage(),
-      ),
-    ),
-    // System
-    PaneItemHeader(
-      header: const Text('System'),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.rocket_24_regular),
-      title: const Text('Power'),
-      body: DeferredWidget(
-        system.loadLibrary,
-        () => system.PowerPage(),
-      ),
-    ),
-    PaneItem(
-      icon: const Icon(ficons.FluentIcons.info_24_regular),
-      title: const Text('About'),
-      body: DeferredWidget(
-        system.loadLibrary,
-        () => system.InfoPage(),
-      ),
+      title: const Text('Calculator'),
+      body: const CalculatorPage(),
     ),
   ];
   final List<NavigationPaneItem> footerItems = [

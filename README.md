@@ -1,4 +1,4 @@
-# yoyo_settings
+# yoyo_calculator
 
 The app showcase for [fluent_ui](https://pub.dev/packages/fluent_ui).
 
